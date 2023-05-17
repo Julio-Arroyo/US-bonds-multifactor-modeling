@@ -7,15 +7,18 @@ def calc_shift(data: pd.DataFrame):
     shift[t] = (1/N_t) * \sum_M ( Y_{M,t} - Y_{M,t-1} )
     """
     shift = np.zeros(len(data))
+    shift[0] = np.nan
     maturities = data.columns[1:]
     for t in range(1, len(data)):
         N_t = 0
         for maturity in maturities:
-            if not np.isnan(data.iloc[t][maturity]) and not np.isnan(data.iloc[t-1][maturity]):
+            if not (np.isnan(data.iloc[t][maturity]) or np.isnan(data.iloc[t-1][maturity])):
                 shift[t] += data.iloc[t][maturity] - data.iloc[t-1][maturity]
                 N_t += 1
-        assert not N_t == 0, "N_t is zero"
-        shift[t] /= N_t
+        if N_t == 0:
+            shift[t] = np.nan
+        else:
+            shift[t] /= N_t
     return shift
 
 
@@ -29,6 +32,7 @@ def calc_tilt(data: pd.DataFrame):
     maturities = [1/12, 3/12, 6/12, 1, 2, 3, 5, 7, 10, 20, 30]
     maturity_labels = data.columns[1:]
     tilt = np.zeros(len(data))
+    tilt[:] = np.nan
 
     for t in range(1, len(data)):
         curr_yields = []
@@ -66,6 +70,7 @@ def calc_flex(data: pd.DataFrame):
     maturity_labels = data.columns[1:]
     assert len(maturity_labels) == len(maturities)
     flex = np.zeros(len(data))
+    flex[:] = np.nan
 
     for t in range(1, len(data)):
         curr_yield_slopes = []
@@ -96,7 +101,7 @@ def calc_flex(data: pd.DataFrame):
         
 
 if __name__ == "__main__":
-    df = pd.read_csv("FRB_H15.csv")
+    df = pd.read_csv("data/FRB_H15.csv")
     LS_factors = calc_shift(df), calc_tilt(df), calc_flex(df)
     LS_factors = np.stack(LS_factors, axis=1)
 
@@ -105,4 +110,4 @@ if __name__ == "__main__":
 
     LS_factors = pd.DataFrame(np.concatenate((months, LS_factors), axis=1),
                               columns=["Holding period", "Shift", "Tilt", "Flex"])
-    LS_factors.to_csv("LS_factors.csv", index=False)
+    LS_factors.to_csv("data/LS_factors.csv", index=False)
