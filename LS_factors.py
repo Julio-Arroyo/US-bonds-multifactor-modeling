@@ -97,4 +97,12 @@ def calc_flex(data: pd.DataFrame):
 
 if __name__ == "__main__":
     df = pd.read_csv("FRB_H15.csv")
-    print(len(calc_flex(df)))
+    LS_factors = calc_shift(df), calc_tilt(df), calc_flex(df)
+    LS_factors = np.stack(LS_factors, axis=1)
+
+    months = np.expand_dims(df["Maturity>>>"].values, axis=1)
+    maturity_labels = [df.columns[1:][i] for i in range(len(df.columns[1:]))]
+
+    LS_factors = pd.DataFrame(np.concatenate((months, LS_factors), axis=1),
+                              columns=["Holding period", "Shift", "Tilt", "Flex"])
+    LS_factors.to_csv("LS_factors.csv", index=False)
